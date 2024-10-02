@@ -4,6 +4,8 @@ const path = require('path');
 let win;
 let tray = null;
 
+let alwaysOnTop = true;
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1200,
@@ -11,13 +13,12 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
     },
-    frame: false,
-    alwaysOnTop: true,
+    alwaysOnTop,
     type: 'dialog',
   });
 
   win.setMenuBarVisibility(false); // hides the menu bar
-  win.loadURL('https://chat.openai.com');
+  win.loadURL('https://chatgpt.com');
 
   // handle minimize to tray
   win.on('minimize', function (event) {
@@ -28,7 +29,7 @@ function createWindow() {
   win.on('close', function (event) {
     if (!app.isQuiting) {
       event.preventDefault();
-      win.hide();
+      app.hide();
     }
 
     return false;
@@ -38,11 +39,22 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  tray = new Tray(path.join(__dirname, 'icon.png')); // use your tray icon here
+  tray = new Tray(path.join(__dirname, 'trayicon.png')); // use your tray icon here
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Show App', click: function () {
         win.show();
+      }
+    },
+    {
+      label: 'Toggle always on top', click: function () {
+        if (alwaysOnTop) {
+          win.setAlwaysOnTop(false, 'screen');
+        } else {
+          win.setAlwaysOnTop(true, 'screen-saver', 1);
+        }
+
+        alwaysOnTop = !alwaysOnTop;
       }
     },
     {
@@ -56,14 +68,10 @@ app.whenReady().then(() => {
   tray.setToolTip('ChatGPT Wrapper');
   tray.setContextMenu(contextMenu);
 
-  tray.on('click', function () {
-    win.isVisible() ? win.hide() : win.show();
-  });
-
     // Register global shortcuts
   globalShortcut.register('Super+Shift+Y', () => {
     if (win.isVisible()) {
-      win.hide();
+      app.hide();
     } else {
       win.show();
     }
@@ -77,7 +85,5 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  app.quit();
 });
